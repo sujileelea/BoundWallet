@@ -1,0 +1,22 @@
+# 데모 봉투 정의 (HANDOFF §7.1)
+# 지갑 주소는 devnet 셋업 스크립트(scripts/)가 실주소로 교체한다.
+# 판매자 C는 의도적으로 allowlist 밖 (시나리오 3·4).
+envelope_id: env_001
+ruleset_version: v1.2
+budget:
+  total: 50.0
+  per_call_max: 2.0
+  spent: 0.0
+  currency: USDC
+allowed_sellers:
+  - PLACEHOLDER_SELLER_A_WALLET
+  - PLACEHOLDER_SELLER_B_WALLET
+allowed_scopes:
+  - clinical_evidence
+  - ingredient_lookup
+limits:
+  max_calls_per_day: 40
+  expires_at: "2026-08-10T00:00:00Z"
+onchain:
+  delegate_address: PLACEHOLDER_EXECUTOR_WALLET
+  delegated_amount: 50.0
