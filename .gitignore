@@ -14,6 +14,7 @@ executor/state/
 node_modules/
 dist/
 *.tsbuildinfo
+.next/
 
 # Python
 __pycache__/

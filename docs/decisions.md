@@ -25,10 +25,14 @@ M6는 Next.js로 구현한다. 4분할 화면(봉투 상태 / Gemini 사고 로�
 
 커밋7 executor 서비스(POST /purchase-intent) + 정책 배선(R4) + 감사 로그 → 커밋8 봉투 상태 관리 + 시나리오 2·3 실측 → 커밋9 영수증 + 3판매자 동시 기동 + 시나리오 실행기. M4(Gemini)는 그 다음.
 
-## D6. LLM 접근 경로 미확보 — M4 착수 전 owner가 준비
+## D6. LLM 접근 = Gemini API 키 우선, Vertex AI는 발표 전 전환
 
-Vertex AI(권장, 심사 ② 정합) 또는 Gemini API 키. 준비될 때까지 LLM 무관 작업 진행.
+M4 착수 시 owner가 aistudio.google.com에서 키 발급(.env, 커밋 금지). ADK는 양쪽을 지원하므로 발표 전 Vertex AI로 전환해 심사 ② 어필.
 
 ## D7. 감사 로그 = AuditSink 인터페이스 + JSONL 우선
 
 로컬은 append-only JSONL(executor/logs/). GCP 준비 후 FirestoreSink 추가 교체. x402 표준 스킴(@x402/svm ExactSvmScheme) 정합은 코어(M4·M6) 완성 후 여유 시.
+
+## D8. 커밋 10~12 = M6 UI(Next.js) 트랙, 리허설은 M4·M6 완성 후
+
+커밋10 web 스캐폴드 + executor SSE(/events)·/catalog → 커밋11 4분할 패널 실데이터 연동 → 커밋12 시나리오 원클릭 버튼 + 폴리시. M7 리허설(4종 ×5회 + 녹화)은 Gemini 실반응까지 붙은 완성본으로.

@@ -8,9 +8,12 @@
 //
 // 실행: node executor/server.ts  (선행: policy 서비스, seller 인스턴스)
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join } from "node:path";
+
+import { createSolanaRpc, type Address } from "@solana/kit";
+import { fetchToken } from "@solana-program/token";
 
 import { JsonlSink } from "./audit-log.ts";
 import { getState, recordPayment, setSpent } from "./envelope-state.ts";
@@ -20,9 +23,21 @@ import { purchaseViaX402 } from "./x402-client.ts";
 const PORT = Number(process.env.EXECUTOR_PORT ?? 5200);
 const POLICY_URL = process.env.POLICY_URL ?? "http://localhost:5100";
 
-const sellerCatalog: Array<{ seller_id: string; port: number; wallet: string }> = JSON.parse(
+const sellerCatalog: Array<{
+  seller_id: string;
+  port: number;
+  wallet: string;
+  price_usdc: number;
+  coverage: string[];
+  role: string;
+}> = JSON.parse(
   readFileSync(join(import.meta.dirname, "..", "seller", "config", "sellers.json"), "utf8"),
 ).sellers;
+const ADDRESSES = JSON.parse(
+  readFileSync(join(import.meta.dirname, "..", "scripts", "devnet-addresses.json"), "utf8"),
+);
+const rpc = createSolanaRpc(process.env.SOLANA_RPC_URL ?? "https://api.devnet.solana.com");
+const AUDIT_PATH = join(import.meta.dirname, "logs", "audit.jsonl");
 
 const audit = new JsonlSink(join(import.meta.dirname, "logs", "audit.jsonl"));
 const now = () => new Date().toISOString();
@@ -61,10 +76,37 @@ function buildReceipt(
   };
 }
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 function send(res: ServerResponse, status: number, body: unknown) {
   const payload = JSON.stringify(body, null, 2);
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", ...CORS });
   res.end(payload);
+}
+
+// 감사 로그를 SSE로 스트리밍 — UI(M6)의 유일한 데이터 소스.
+// 접속 시 기존 이벤트 재생 후, 파일 증분을 500ms 폴링으로 밀어준다.
+function streamEvents(res: ServerResponse) {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    ...CORS,
+  });
+  let sentLines = 0;
+  const push = () => {
+    if (!existsSync(AUDIT_PATH)) return;
+    const lines = readFileSync(AUDIT_PATH, "utf8").split("\n").filter(Boolean);
+    for (const line of lines.slice(sentLines)) res.write(`data: ${line}\n\n`);
+    sentLines = lines.length;
+  };
+  push();
+  const timer = setInterval(push, 500);
+  res.on("close", () => clearInterval(timer));
 }
 
 async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
@@ -140,16 +182,46 @@ async function handlePurchaseIntent(intent: Record<string, unknown>) {
 
 createServer((req, res) => {
   (async () => {
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, CORS);
+      return res.end();
+    }
     if (req.method === "GET" && req.url === "/health") {
       return send(res, 200, { service: "executor", policy_url: POLICY_URL });
+    }
+    if (req.method === "GET" && req.url === "/events") {
+      return streamEvents(res);
+    }
+    if (req.method === "GET" && req.url === "/catalog") {
+      return send(res, 200, {
+        sellers: sellerCatalog.map(({ seller_id, wallet, price_usdc, coverage, role }) => ({
+          seller_id, wallet, price_usdc, coverage, role,
+        })),
+        attacker: ADDRESSES.attacker,
+        mint: ADDRESSES.mint,
+        admin_ata: ADDRESSES.admin_ata,
+      });
     }
     if (req.method === "GET" && req.url?.startsWith("/envelope-status")) {
       const envelopeId = new URL(req.url, "http://localhost").searchParams.get("id") ?? "env_001";
       const { envelope, context } = await buildPolicyInput(envelopeId);
+      // 온체인 위임 잔량 — "봉투 밖은 물리적으로 못 나간다"의 실시간 증빙 (M6 패널 ①)
+      let delegatedRemaining: number | null = null;
+      try {
+        const token = await fetchToken(rpc, ADDRESSES.admin_ata as Address);
+        delegatedRemaining = Number(token.data.delegatedAmount) / 1_000_000;
+      } catch {
+        // RPC 일시 장애 시 null — UI는 "조회 실패"로 표시
+      }
       return send(res, 200, {
         envelope,
         calls_today: context.calls_today,
         remaining: Math.round((envelope.budget.total - envelope.budget.spent) * 1_000_000) / 1_000_000,
+        onchain: {
+          delegated_remaining: delegatedRemaining,
+          delegate: envelope.onchain.delegate_address,
+          explorer_url: `https://explorer.solana.com/address/${ADDRESSES.admin_ata}?cluster=devnet`,
+        },
       });
     }
     if (req.method === "POST" && req.url === "/purchase-intent") {
