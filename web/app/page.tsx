@@ -7,6 +7,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { SCENARIOS, resetEnvelope } from "./scenarios";
+
 const EXECUTOR = process.env.NEXT_PUBLIC_EXECUTOR_URL ?? "http://localhost:5200";
 
 interface AuditEvent {
@@ -60,6 +62,24 @@ export default function Home() {
     return () => { alive = false; clearInterval(timer); };
   }, []);
 
+  const [running, setRunning] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const sessionStart = useRef(new Date().toISOString());
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? events : events.filter((e) => e.ts >= sessionStart.current);
+
+  const runScenario = async (key: string) => {
+    setRunning(key);
+    setError(null);
+    try {
+      await SCENARIOS[key].run();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setRunning(null);
+    }
+  };
+
   return (
     <main>
       <header>
@@ -69,11 +89,25 @@ export default function Home() {
           {connected ? "● live" : "○ executor 연결 대기"}
         </span>
       </header>
+      <div className="toolbar">
+        {Object.entries(SCENARIOS).map(([key, s]) => (
+          <button key={key} disabled={running !== null} onClick={() => runScenario(key)}>
+            {running === key ? "실행 중…" : s.label}
+          </button>
+        ))}
+        <button disabled={running !== null} onClick={() => resetEnvelope()} className="ghost">
+          봉투 리셋
+        </button>
+        <button onClick={() => setShowAll((v) => !v)} className="ghost">
+          {showAll ? "이번 세션만" : "전체 이력"}
+        </button>
+        {error && <span className="fail">{error}</span>}
+      </div>
       <div className="grid">
         <EnvelopePanel status={status} />
-        <AgentPanel events={events} />
-        <PolicyPanel events={events} />
-        <TransactionPanel events={events} />
+        <AgentPanel events={visible} />
+        <PolicyPanel events={visible} />
+        <TransactionPanel events={visible} />
       </div>
     </main>
   );
