@@ -9,8 +9,8 @@ budget:
   spent: 0.0
   currency: USDC
 allowed_sellers:
-  - PLACEHOLDER_SELLER_A_WALLET
-  - PLACEHOLDER_SELLER_B_WALLET
+  - 3A3apmU2youWsJ7ndVNXqRgr5EDx6ieDt9HGLJD74GHm
+  - CdHm2FGtqyX3MMreCWBFKoLuDUBoRfk9bt5AKuuGPn32
 allowed_scopes:
   - clinical_evidence
   - ingredient_lookup
@@ -18,5 +18,5 @@ limits:
   max_calls_per_day: 40
   expires_at: "2026-08-10T00:00:00Z"
 onchain:
-  delegate_address: PLACEHOLDER_EXECUTOR_WALLET
+  delegate_address: D32wBnPc8CN6ErmMiisCHeLSdJC2vVeKMHSKw8VpqH5j
   delegated_amount: 50.0

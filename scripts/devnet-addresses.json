@@ -1,0 +1,16 @@
+{
+  "network": "solana-devnet",
+  "mint": "3jSgNquvLmqbsBHA1BpoYidpuppZBcGzrVqUMgCjwDJN",
+  "mint_note": "모사 USDC(USDC-M) — 데모에서 명시 (S1 대안 경로)",
+  "executor": "D32wBnPc8CN6ErmMiisCHeLSdJC2vVeKMHSKw8VpqH5j",
+  "admin": "HwVAydijgGjFUc5k56UHX5g7MFCkohnskZxCbCvNEsDz",
+  "admin_ata": "4cNQ1YJJqeSN3mZ73gs24jhQg44Ze4PH6N8EVN9hSbPK",
+  "seller_a": "3A3apmU2youWsJ7ndVNXqRgr5EDx6ieDt9HGLJD74GHm",
+  "seller_b": "CdHm2FGtqyX3MMreCWBFKoLuDUBoRfk9bt5AKuuGPn32",
+  "seller_c": "GJhbRXk5RAiwPcYqAdXBhxhEuqWppddT5FXUKRAs9i3z",
+  "attacker": "9H9H7RnsjW4sP82PomGpYe2UsUCSbAjdHHU17gyciHMk",
+  "explorer": {
+    "admin_ata": "https://explorer.solana.com/address/4cNQ1YJJqeSN3mZ73gs24jhQg44Ze4PH6N8EVN9hSbPK?cluster=devnet",
+    "mint": "https://explorer.solana.com/address/3jSgNquvLmqbsBHA1BpoYidpuppZBcGzrVqUMgCjwDJN?cluster=devnet"
+  }
+}
