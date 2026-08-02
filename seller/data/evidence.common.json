@@ -1,0 +1,41 @@
+{
+  "_note": "목 근거 데이터셋 — 실제 임상 DB 아님 (HANDOFF §11). PMID는 데모용 가짜 식별자.",
+  "records": [
+    {
+      "topic": "retinol_wrinkle_reduction",
+      "keywords": ["retinol", "레티놀", "wrinkle", "주름"],
+      "regions": ["US", "EU"],
+      "grade": "B",
+      "basis": "2 RCT, 1 meta-analysis",
+      "sources": ["PMID:12345678", "PMID:23456789", "PMID:34567890"],
+      "summary": "레티놀 0.3~1.0% 국소 도포군에서 12주 후 주름 깊이의 통계적으로 유의한 감소가 2건의 RCT에서 보고되었다. 메타분석 1건은 효과 크기를 중간 수준으로 평가했다. 자극성 피부 반응이 흔한 부작용으로 보고되었다."
+    },
+    {
+      "topic": "niacinamide_brightening",
+      "keywords": ["niacinamide", "나이아신아마이드", "brightening", "미백"],
+      "regions": ["US", "EU"],
+      "grade": "B",
+      "basis": "3 RCT",
+      "sources": ["PMID:45678901", "PMID:56789012"],
+      "summary": "나이아신아마이드 2~5% 제형에서 8주 이상 사용 시 색소침착 개선이 3건의 RCT에서 관찰되었다. 위약 대비 차이는 유의했으나 효과 크기는 제형·농도에 따라 편차가 있다."
+    },
+    {
+      "topic": "vitamin_c_antioxidant",
+      "keywords": ["vitamin c", "비타민c", "ascorbic", "antioxidant", "항산화"],
+      "regions": ["US", "EU"],
+      "grade": "A",
+      "basis": "4 RCT, 2 meta-analysis",
+      "sources": ["PMID:67890123", "PMID:78901234", "PMID:89012345"],
+      "summary": "L-아스코르브산 10~20% 제형의 광손상 개선 효과가 다수의 RCT와 2건의 메타분석에서 일관되게 보고되었다. 안정화 제형 여부가 효과를 좌우하는 주요 변수였다."
+    },
+    {
+      "topic": "hyaluronic_acid_hydration",
+      "keywords": ["hyaluronic", "히알루론산", "hydration", "보습"],
+      "regions": ["US", "EU"],
+      "grade": "C",
+      "basis": "1 RCT, 2 observational",
+      "sources": ["PMID:90123456"],
+      "summary": "국소 히알루론산의 단기 피부 수분량 증가는 관찰연구에서 일관되나, 장기 효과에 대한 RCT 근거는 1건으로 제한적이다."
+    }
+  ]
+}

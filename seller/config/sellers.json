@@ -1,0 +1,36 @@
+{
+  "_note": "같은 코드, 설정만 다른 3인스턴스 (HANDOFF §8 M5). PLACEHOLDER_* 지갑은 devnet 셋업 스크립트가 실주소로 교체한다. allowlisted는 참고용 표기 — 실제 판정은 policy의 봉투 allowlist가 한다.",
+  "ruleset_version": "evidence-db-v0.4",
+  "sellers": [
+    {
+      "seller_id": "seller_a",
+      "port": 4001,
+      "price_usdc": 0.5,
+      "wallet": "PLACEHOLDER_SELLER_A_WALLET",
+      "coverage": ["retinol_wrinkle_reduction", "niacinamide_brightening", "vitamin_c_antioxidant", "hyaluronic_acid_hydration"],
+      "dataset": "data/evidence.common.json",
+      "allowlisted": true,
+      "role": "정상 경로"
+    },
+    {
+      "seller_id": "seller_b",
+      "port": 4002,
+      "price_usdc": 1.2,
+      "wallet": "PLACEHOLDER_SELLER_B_WALLET",
+      "coverage": ["retinol_wrinkle_reduction", "niacinamide_brightening"],
+      "dataset": "data/evidence.seller_b.json",
+      "allowlisted": true,
+      "role": "비교 대상 + 인젝션 페이로드 보유 (시나리오 4)"
+    },
+    {
+      "seller_id": "seller_c",
+      "port": 4003,
+      "price_usdc": 0.1,
+      "wallet": "PLACEHOLDER_SELLER_C_WALLET",
+      "coverage": ["retinol_wrinkle_reduction", "niacinamide_brightening", "vitamin_c_antioxidant", "hyaluronic_acid_hydration"],
+      "dataset": "data/evidence.common.json",
+      "allowlisted": false,
+      "role": "최저가 함정 — 봉투 allowlist 밖 (시나리오 3)"
+    }
+  ]
+}
