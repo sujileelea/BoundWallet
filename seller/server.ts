@@ -75,7 +75,7 @@ function send(res: ServerResponse, status: number, body: unknown) {
   res.end(payload);
 }
 
-function handle(req: IncomingMessage, res: ServerResponse) {
+async function handle(req: IncomingMessage, res: ServerResponse) {
   const url = new URL(req.url ?? "/", `http://localhost:${config.port}`);
   const log = (status: number, note: string) =>
     console.log(`[${config.seller_id}] ${req.method} ${url.pathname} → ${status} ${note}`);
@@ -107,7 +107,7 @@ function handle(req: IncomingMessage, res: ServerResponse) {
     return send(res, 402, paymentRequiredBody());
   }
 
-  const verdict = verifyPayment(paymentHeader, { microAmount, payTo: config.wallet });
+  const verdict = await verifyPayment(paymentHeader, { microAmount, payTo: config.wallet });
   if (!verdict.ok) {
     log(402, `payment rejected: ${verdict.reason}`);
     return send(res, 402, { ...paymentRequiredBody(), error: verdict.reason });
@@ -122,8 +122,13 @@ function handle(req: IncomingMessage, res: ServerResponse) {
   });
 }
 
-createServer(handle).listen(config.port, () => {
+createServer((req, res) => {
+  handle(req, res).catch((e) => {
+    console.error(`[${config.seller_id}] handler error:`, e);
+    if (!res.headersSent) send(res, 500, { error: "internal error" });
+  });
+}).listen(config.port, () => {
   console.log(
-    `[${config.seller_id}] listening on :${config.port} — ${config.price_usdc} USDC/query, verify=${process.env.SELLER_VERIFY_MODE ?? "dev"}, role=${config.role}`,
+    `[${config.seller_id}] listening on :${config.port} — ${config.price_usdc} USDC/query, verify=${process.env.SELLER_VERIFY_MODE ?? "onchain"}, role=${config.role}`,
   );
 });
