@@ -39,6 +39,28 @@ async function buildPolicyInput(envelopeId: string) {
   return { envelope, context };
 }
 
+// 영수증 (shared/receipt.schema.json). BLOCK이면 payment·attestation은 null
+function buildReceipt(
+  intent_id: string,
+  decision: { verdict: string; ruleset_version: string },
+  payment: { signature: string; explorer_url: string; amount: number; asset: string } | null,
+  attestation: { query_hash: string; ruleset_version: string } | null,
+  envelope: { budget: { total: number; spent: number } },
+) {
+  return {
+    intent_id,
+    policy_decision: { verdict: decision.verdict, ruleset_version: decision.ruleset_version },
+    payment,
+    attestation: attestation
+      ? { query_hash: attestation.query_hash, ruleset_version: attestation.ruleset_version }
+      : null,
+    envelope_after: {
+      spent: envelope.budget.spent,
+      remaining: Math.round((envelope.budget.total - envelope.budget.spent) * 1_000_000) / 1_000_000,
+    },
+  };
+}
+
 function send(res: ServerResponse, status: number, body: unknown) {
   const payload = JSON.stringify(body, null, 2);
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
@@ -68,7 +90,9 @@ async function handlePurchaseIntent(intent: Record<string, unknown>) {
 
   if (decision.verdict !== "PASS") {
     audit.append({ ts: now(), type: "payment_blocked", intent_id, reasons: decision.reasons });
-    return { decision, payment: null, data: null, attestation: null };
+    const receipt = buildReceipt(intent_id, decision, null, null, envelope);
+    audit.append({ ts: now(), type: "receipt", intent_id, receipt });
+    return { decision, payment: null, data: null, attestation: null, receipt };
   }
 
   // ── PASS: x402 결제. 정책이 심사한 지갑·금액과 다르면 클라이언트가 중단한다 ────
@@ -90,17 +114,24 @@ async function handlePurchaseIntent(intent: Record<string, unknown>) {
       pay_to: result.offer.payTo,
     });
     audit.append({ ts: now(), type: "data_received", intent_id, attestation: result.response.attestation });
-    return {
-      decision,
-      payment: {
-        signature: result.signature,
-        explorer_url: result.explorer_url,
-        amount: result.amount_usdc,
-        asset: "USDC-M",
-      },
-      data: result.response.data,
-      attestation: result.response.attestation,
+    const payment = {
+      signature: result.signature,
+      explorer_url: result.explorer_url,
+      amount: result.amount_usdc,
+      asset: "USDC-M",
     };
+    // 결제 반영 후 잔액으로 영수증 작성 (§7.6)
+    const fresh = getState(String(intent.envelope_id), todayUtc(), 0);
+    envelope.budget.spent = fresh.spentMicro / 1_000_000;
+    const receipt = buildReceipt(
+      intent_id,
+      decision,
+      payment,
+      result.response.attestation as { query_hash: string; ruleset_version: string } | null,
+      envelope,
+    );
+    audit.append({ ts: now(), type: "receipt", intent_id, receipt });
+    return { decision, payment, data: result.response.data, attestation: result.response.attestation, receipt };
   } catch (e) {
     audit.append({ ts: now(), type: "payment_failed", intent_id, error: (e as Error).message });
     throw e;

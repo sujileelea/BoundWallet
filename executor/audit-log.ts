@@ -13,7 +13,8 @@ export interface AuditEntry {
     | "payment_executed"
     | "payment_blocked"
     | "payment_failed"
-    | "data_received";
+    | "data_received"
+    | "receipt";
   intent_id: string;
   [key: string]: unknown;
 }
