@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "purchase_intent.schema.json",
+  "title": "PurchaseIntent",
+  "description": "agent → executor. 결제 명령이 아니라 '이걸 사고 싶다'는 의도 (HANDOFF §7.2)",
+  "type": "object",
+  "required": ["intent_id", "envelope_id", "seller_id", "seller_wallet", "quoted_price", "scope", "query", "agent_rationale", "quotes_considered"],
+  "properties": {
+    "intent_id": { "type": "string", "pattern": "^int_[A-Za-z0-9_]+$" },
+    "envelope_id": { "type": "string", "pattern": "^env_[A-Za-z0-9_]+$" },
+    "seller_id": { "type": "string" },
+    "seller_wallet": { "type": "string", "description": "결제 수취 지갑 주소(base58). allowlist 검증 대상" },
+    "quoted_price": { "type": "number", "exclusiveMinimum": 0, "description": "USDC 단위" },
+    "scope": { "type": "string" },
+    "query": { "type": "string", "minLength": 1 },
+    "agent_rationale": { "type": "string", "description": "UI에 그대로 출력됨. 시나리오 3·4의 결정적 필드" },
+    "quotes_considered": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["seller_id", "price"],
+        "properties": {
+          "seller_id": { "type": "string" },
+          "price": { "type": "number" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

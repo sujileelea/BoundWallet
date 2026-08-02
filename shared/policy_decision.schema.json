@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "policy_decision.schema.json",
+  "title": "PolicyDecision",
+  "description": "policy → executor. R5: FAIL이 나와도 모든 규칙을 평가하고 전부 기록한다 (HANDOFF §7.3)",
+  "type": "object",
+  "required": ["intent_id", "verdict", "ruleset_version", "checked_rules", "reasons", "evaluated_at"],
+  "properties": {
+    "intent_id": { "type": "string" },
+    "verdict": { "enum": ["PASS", "BLOCK"] },
+    "ruleset_version": { "type": "string" },
+    "checked_rules": {
+      "type": "array",
+      "description": "검사한 규칙 전체 목록. 규칙 6종이 모두 존재해야 한다",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["rule", "result", "detail"],
+        "properties": {
+          "rule": { "enum": ["budget_total", "per_call_max", "seller_allowlist", "scope", "daily_call_limit", "expiry"] },
+          "result": { "enum": ["PASS", "FAIL"] },
+          "detail": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "description": "FAIL 규칙의 사유 코드 목록. verdict=PASS이면 빈 배열",
+      "items": { "type": "string" }
+    },
+    "evaluated_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

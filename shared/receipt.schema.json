@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "receipt.schema.json",
+  "title": "Receipt",
+  "description": "executor → 감사 로그/UI (HANDOFF §7.6). BLOCK 시에는 payment가 null",
+  "type": "object",
+  "required": ["intent_id", "policy_decision", "payment", "attestation", "envelope_after"],
+  "properties": {
+    "intent_id": { "type": "string" },
+    "policy_decision": {
+      "type": "object",
+      "required": ["verdict", "ruleset_version"],
+      "properties": {
+        "verdict": { "enum": ["PASS", "BLOCK"] },
+        "ruleset_version": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "payment": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["signature", "explorer_url", "amount", "asset"],
+          "properties": {
+            "signature": { "type": "string" },
+            "explorer_url": { "type": "string", "format": "uri" },
+            "amount": { "type": "number" },
+            "asset": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "attestation": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["query_hash", "ruleset_version"],
+          "properties": {
+            "query_hash": { "type": "string" },
+            "ruleset_version": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "envelope_after": {
+      "type": "object",
+      "required": ["spent", "remaining"],
+      "properties": {
+        "spent": { "type": "number" },
+        "remaining": { "type": "number" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

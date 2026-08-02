@@ -1,0 +1,21 @@
+# 비밀 — 절대 커밋 금지
+.env
+.env.*
+*.env
+executor/wallet/*.json
+**/*keypair*.json
+**/*.pem
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# OS/편집기
+.DS_Store

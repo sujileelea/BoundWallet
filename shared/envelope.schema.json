@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "envelope.schema.json",
+  "title": "Envelope",
+  "description": "관리자가 최초 1회 설정하는 지출 제약 묶음 (HANDOFF §7.1)",
+  "type": "object",
+  "required": ["envelope_id", "ruleset_version", "budget", "allowed_sellers", "allowed_scopes", "limits", "onchain"],
+  "properties": {
+    "envelope_id": { "type": "string", "pattern": "^env_[A-Za-z0-9_]+$" },
+    "ruleset_version": { "type": "string" },
+    "budget": {
+      "type": "object",
+      "required": ["total", "per_call_max", "spent", "currency"],
+      "properties": {
+        "total": { "type": "number", "exclusiveMinimum": 0 },
+        "per_call_max": { "type": "number", "exclusiveMinimum": 0 },
+        "spent": { "type": "number", "minimum": 0 },
+        "currency": { "const": "USDC" }
+      },
+      "additionalProperties": false
+    },
+    "allowed_sellers": {
+      "type": "array",
+      "description": "허용 판매자 지갑 주소(base58) 목록",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "allowed_scopes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "limits": {
+      "type": "object",
+      "required": ["max_calls_per_day", "expires_at"],
+      "properties": {
+        "max_calls_per_day": { "type": "integer", "minimum": 1 },
+        "expires_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "onchain": {
+      "type": "object",
+      "required": ["delegate_address", "delegated_amount"],
+      "properties": {
+        "delegate_address": { "type": "string", "description": "executor 지갑 주소(base58)" },
+        "delegated_amount": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

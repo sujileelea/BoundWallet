@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "attestation.schema.json",
+  "title": "Attestation",
+  "description": "seller → executor → agent. 정확도가 아니라 추적 가능성을 주장한다 (HANDOFF §7.5)",
+  "type": "object",
+  "required": ["query_hash", "ruleset_version", "verdict", "sources", "issued_at", "seller_id"],
+  "properties": {
+    "query_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "ruleset_version": { "type": "string" },
+    "verdict": {
+      "type": "object",
+      "required": ["grade", "basis"],
+      "properties": {
+        "grade": { "enum": ["A", "B", "C", "D", "INSUFFICIENT"] },
+        "basis": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "sources": { "type": "array", "items": { "type": "string" } },
+    "issued_at": { "type": "string", "format": "date-time" },
+    "seller_id": { "type": "string" }
+  },
+  "additionalProperties": false
+}
