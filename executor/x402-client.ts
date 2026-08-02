@@ -44,7 +44,17 @@ export interface PurchaseResult {
   response: { data: unknown; attestation: unknown };
 }
 
-export async function purchaseViaX402(sellerUrl: string, query: string): Promise<PurchaseResult> {
+export interface PurchaseGuards {
+  // 정책이 심사한 값과 402 오퍼가 다르면 결제를 중단한다.
+  expectedPayTo?: string; // 정책이 allowlist로 승인한 지갑 — 이 지갑 외에는 송금하지 않는다
+  maxMicroAmount?: bigint; // 정책이 심사한 quoted_price — 이보다 비싸게 청구되면 중단
+}
+
+export async function purchaseViaX402(
+  sellerUrl: string,
+  query: string,
+  guards: PurchaseGuards = {},
+): Promise<PurchaseResult> {
   const resourceUrl = `${sellerUrl}/evidence?query=${encodeURIComponent(query)}`;
 
   // 1단계: 결제 없이 요청 → 402 결제 지시 수신
@@ -52,6 +62,14 @@ export async function purchaseViaX402(sellerUrl: string, query: string): Promise
   if (first.status !== 402) throw new Error(`402 기대, 실제 ${first.status}`);
   const offer: X402Offer = (await first.json()).accepts[0];
   if (offer.network !== "solana-devnet") throw new Error(`지원하지 않는 네트워크: ${offer.network}`);
+  if (guards.expectedPayTo && offer.payTo !== guards.expectedPayTo) {
+    throw new Error(`payTo 불일치: 402 오퍼 ${offer.payTo} ≠ 정책 승인 지갑 ${guards.expectedPayTo}`);
+  }
+  if (guards.maxMicroAmount !== undefined && BigInt(offer.maxAmountRequired) > guards.maxMicroAmount) {
+    throw new Error(
+      `402 청구액 ${offer.maxAmountRequired} > 정책이 심사한 견적 ${guards.maxMicroAmount}`,
+    );
+  }
 
   // 2단계: 위임 전송 — admin ATA에서 판매자 ATA로, executor는 delegate 서명만
   const executor = await loadExecutorSigner();
