@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mandate.schema.json",
+  "title": "Mandate",
+  "description": "AP2 경량 mandate (docs/decisions.md D4). 관리자 키가 봉투 정의(정렬 키 canonical JSON)의 sha256에 ed25519 서명 — '사람이 이 지출 범위를 승인했다'의 암호학적 증빙. 서명 대상은 envelope_hash뿐이며 issued_at 등 메타데이터는 서명 밖(경량 구현의 한계로 명시).",
+  "type": "object",
+  "required": ["mandate_version", "envelope_id", "envelope_hash", "ruleset_version", "delegate", "signed_by", "signature", "issued_at"],
+  "properties": {
+    "mandate_version": { "const": "ap2-lite-v1" },
+    "envelope_id": { "type": "string" },
+    "envelope_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "ruleset_version": { "type": "string" },
+    "delegate": { "type": "string", "description": "위임받는 executor 지갑 주소" },
+    "signed_by": { "type": "string", "description": "관리자(봉투 소유자) 지갑 주소" },
+    "signature": { "type": "string", "pattern": "^[0-9a-f]{128}$", "description": "envelope_hash 바이트에 대한 ed25519 서명(hex)" },
+    "issued_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

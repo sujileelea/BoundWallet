@@ -51,17 +51,19 @@ agent (Python+ADK, 키 없음) ──구매 의도──▶ executor (TS, 유일
 | /shared 스키마 확정 | 완료 (x402 402 응답은 S2 정합 시 갱신) |
 | M1 결제 최소 루프 | **완료** — 402→위임 전송→온체인 검증→200 왕복 실측, Explorer 확인 |
 | M2 정책 엔진 | **완료** — 엔진(테스트 26개) + executor 배선(R4), PASS/BLOCK 실측 |
-| M3 온체인 한도 | 위임 실측 완료 — 봉투 생성 플로우·AP2 mandate(D4) 연결 대기 |
+| M3 온체인 한도 | **완료** — Approve 위임 실측 + AP2 경량 mandate(관리자 서명·executor 검증·영수증 첨부) |
 | M4 Gemini 에이전트 | 대기 (LLM 접근 경로 owner 준비 — D6) |
 | M5 판매자 3인스턴스 | **완료** — 온체인 검증(replay 가드) + 3인스턴스 동시 기동 |
-| M6 데모 UI | 대기 (Next.js 확정, D3) |
+| M6 데모 UI | **완료** — Next.js 4분할 + SSE + 시나리오 원클릭 버튼 (Gemini 사고 로그는 M4에서 합류) |
 | M7 시나리오 리허설 | 실행기 구축 — 시나리오 1~4(4는 모의) 원클릭 통과. 5회 연속·녹화 대기 |
 
 ## 실행
 
 ```bash
-./scripts/run-all.sh            # policy(:5100) + seller×3(:4001~3) + executor(:5200)
-node scripts/scenario.ts all    # 시나리오 1~4 (1은 실결제 3건)
-node scripts/scenario.ts reset  # 봉투 상태 초기화
-node scripts/devnet-setup.ts    # 최초 1회 / 위임 잔량 소진 시 재실행
+./scripts/run-all.sh              # policy(:5100) + seller×3(:4001~3) + executor(:5200)
+(cd web && npm run dev)           # 데모 UI http://localhost:3000
+node scripts/scenario.ts all      # 시나리오 1~4 CLI (UI 버튼과 동일)
+node scripts/scenario.ts reset    # 봉투 상태 초기화
+node scripts/devnet-setup.ts      # 최초 1회 / 위임 잔량 소진 시 재실행
+node scripts/create-mandate.ts    # AP2 mandate 재서명 (봉투 정의 변경 시)
 ```

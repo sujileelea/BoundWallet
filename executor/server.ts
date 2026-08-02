@@ -17,6 +17,8 @@ import { fetchToken } from "@solana-program/token";
 
 import { JsonlSink } from "./audit-log.ts";
 import { getState, recordPayment, setSpent } from "./envelope-state.ts";
+import { verifyMandate, type MandateStatus } from "./mandate.ts";
+import { loadExecutorSigner } from "./wallet.ts";
 import { purchaseViaX402 } from "./x402-client.ts";
 
 // 5000은 macOS AirPlay(ControlCenter)가 점유하므로 피한다
@@ -43,15 +45,28 @@ const audit = new JsonlSink(join(import.meta.dirname, "logs", "audit.jsonl"));
 const now = () => new Date().toISOString();
 const todayUtc = () => now().slice(0, 10);
 
+// AP2 mandate 검증 캐시 — 봉투 정의(원본)에 대한 관리자 서명 확인 (D4)
+let mandateCache: MandateStatus | null = null;
+async function getMandateStatus(envelopeId: string, rawEnvelope: Record<string, unknown>) {
+  if (!mandateCache) {
+    const executor = await loadExecutorSigner();
+    mandateCache = await verifyMandate(envelopeId, rawEnvelope, executor.address);
+    console.log(`[executor] mandate: ${mandateCache.verified ? "✓" : "✗"} ${mandateCache.reason}`);
+  }
+  return mandateCache;
+}
+
 // 봉투 정의(policy 정본)에 런타임 상태(spent/calls — executor 정본)를 얹어 판정 입력 구성
 async function buildPolicyInput(envelopeId: string) {
   const res = await fetch(`${POLICY_URL}/envelope/${envelopeId}`);
   if (!res.ok) throw new Error(`봉투 조회 실패: ${res.status}`);
   const envelope = await res.json();
+  // mandate는 서명 당시의 "정의"에 대한 것 — 런타임 spent 덮어쓰기 전에 검증
+  const mandate = await getMandateStatus(envelopeId, structuredClone(envelope));
   const state = getState(envelopeId, todayUtc(), Math.round(envelope.budget.spent * 1_000_000));
   envelope.budget.spent = state.spentMicro / 1_000_000;
   const context = { calls_today: state.callsToday, now: now() };
-  return { envelope, context };
+  return { envelope, context, mandate };
 }
 
 // 영수증 (shared/receipt.schema.json). BLOCK이면 payment·attestation은 null
@@ -61,6 +76,7 @@ function buildReceipt(
   payment: { signature: string; explorer_url: string; amount: number; asset: string } | null,
   attestation: { query_hash: string; ruleset_version: string } | null,
   envelope: { budget: { total: number; spent: number } },
+  mandate: MandateStatus,
 ) {
   return {
     intent_id,
@@ -73,6 +89,10 @@ function buildReceipt(
       spent: envelope.budget.spent,
       remaining: Math.round((envelope.budget.total - envelope.budget.spent) * 1_000_000) / 1_000_000,
     },
+    // AP2 경량 mandate 참조(D4) — 이 지출 범위를 사람이 서명 승인했다는 증빙
+    mandate: mandate.verified && mandate.mandate
+      ? { envelope_hash: mandate.mandate.envelope_hash, signed_by: mandate.mandate.signed_by }
+      : null,
   };
 }
 
@@ -120,7 +140,7 @@ async function handlePurchaseIntent(intent: Record<string, unknown>) {
   audit.append({ ts: now(), type: "intent_received", intent_id, intent });
 
   // ── 정책 판정 — 결제로 가는 유일한 관문 (R4) ────────────────────────────────
-  const { envelope, context } = await buildPolicyInput(String(intent.envelope_id));
+  const { envelope, context, mandate } = await buildPolicyInput(String(intent.envelope_id));
   const policyRes = await fetch(`${POLICY_URL}/evaluate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -132,7 +152,7 @@ async function handlePurchaseIntent(intent: Record<string, unknown>) {
 
   if (decision.verdict !== "PASS") {
     audit.append({ ts: now(), type: "payment_blocked", intent_id, reasons: decision.reasons });
-    const receipt = buildReceipt(intent_id, decision, null, null, envelope);
+    const receipt = buildReceipt(intent_id, decision, null, null, envelope, mandate);
     audit.append({ ts: now(), type: "receipt", intent_id, receipt });
     return { decision, payment: null, data: null, attestation: null, receipt };
   }
@@ -171,6 +191,7 @@ async function handlePurchaseIntent(intent: Record<string, unknown>) {
       payment,
       result.response.attestation as { query_hash: string; ruleset_version: string } | null,
       envelope,
+      mandate,
     );
     audit.append({ ts: now(), type: "receipt", intent_id, receipt });
     return { decision, payment, data: result.response.data, attestation: result.response.attestation, receipt };
@@ -204,7 +225,7 @@ createServer((req, res) => {
     }
     if (req.method === "GET" && req.url?.startsWith("/envelope-status")) {
       const envelopeId = new URL(req.url, "http://localhost").searchParams.get("id") ?? "env_001";
-      const { envelope, context } = await buildPolicyInput(envelopeId);
+      const { envelope, context, mandate } = await buildPolicyInput(envelopeId);
       // 온체인 위임 잔량 — "봉투 밖은 물리적으로 못 나간다"의 실시간 증빙 (M6 패널 ①)
       let delegatedRemaining: number | null = null;
       try {
@@ -221,6 +242,12 @@ createServer((req, res) => {
           delegated_remaining: delegatedRemaining,
           delegate: envelope.onchain.delegate_address,
           explorer_url: `https://explorer.solana.com/address/${ADDRESSES.admin_ata}?cluster=devnet`,
+        },
+        mandate: {
+          present: mandate.present,
+          verified: mandate.verified,
+          reason: mandate.reason,
+          signed_by: mandate.mandate?.signed_by ?? null,
         },
       });
     }

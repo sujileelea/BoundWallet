@@ -54,6 +54,21 @@
         "remaining": { "type": "number" }
       },
       "additionalProperties": false
+    },
+    "mandate": {
+      "description": "AP2 경량 mandate 참조 (shared/mandate.schema.json, D4). 검증 실패·부재 시 null",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["envelope_hash", "signed_by"],
+          "properties": {
+            "envelope_hash": { "type": "string" },
+            "signed_by": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
     }
   },
   "additionalProperties": false

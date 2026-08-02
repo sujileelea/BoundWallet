@@ -1,0 +1,10 @@
+{
+  "mandate_version": "ap2-lite-v1",
+  "envelope_id": "env_001",
+  "envelope_hash": "sha256:8f8abc75d6851a091d10e8374669a4188ca8433957b5ae463857a064cd4b1a52",
+  "ruleset_version": "v1.2",
+  "delegate": "D32wBnPc8CN6ErmMiisCHeLSdJC2vVeKMHSKw8VpqH5j",
+  "signed_by": "HwVAydijgGjFUc5k56UHX5g7MFCkohnskZxCbCvNEsDz",
+  "signature": "69c12f093dcc8fb88f46b97b75993cfb9a16be4b53dd0906c91971f17e696c7874db7534537006ea8337e9e18f4e3a6b6b5b89c932c5b2e9d93c75d7d7a1af07",
+  "issued_at": "2026-08-02T12:10:06.300Z"
+}

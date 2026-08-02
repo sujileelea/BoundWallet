@@ -29,6 +29,7 @@ interface EnvelopeStatus {
   calls_today: number;
   remaining: number;
   onchain: { delegated_remaining: number | null; delegate: string; explorer_url: string };
+  mandate: { present: boolean; verified: boolean; reason: string; signed_by: string | null };
 }
 
 export default function Home() {
@@ -149,6 +150,14 @@ function EnvelopePanel({ status }: { status: EnvelopeStatus | null }) {
           <p style={{ marginTop: 8 }} className="muted">
             허용 판매자 {status.envelope.allowed_sellers.length}곳 · 만료 {status.envelope.limits.expires_at.slice(0, 10)} ·{" "}
             <a href={status.onchain.explorer_url} target="_blank" rel="noreferrer">위임 계정 Explorer ↗</a>
+          </p>
+          <p style={{ marginTop: 4 }}>
+            AP2 mandate:{" "}
+            {status.mandate.verified ? (
+              <span className="pass">✓ 관리자 서명 검증됨 ({short(status.mandate.signed_by ?? "")})</span>
+            ) : (
+              <span className="warn">✗ {status.mandate.reason}</span>
+            )}
           </p>
         </>
       )}
