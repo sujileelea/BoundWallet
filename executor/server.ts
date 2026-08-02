@@ -13,6 +13,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { join } from "node:path";
 
 import { JsonlSink } from "./audit-log.ts";
+import { getState, recordPayment, setSpent } from "./envelope-state.ts";
 import { purchaseViaX402 } from "./x402-client.ts";
 
 // 5000은 macOS AirPlay(ControlCenter)가 점유하므로 피한다
@@ -25,13 +26,16 @@ const sellerCatalog: Array<{ seller_id: string; port: number; wallet: string }> 
 
 const audit = new JsonlSink(join(import.meta.dirname, "logs", "audit.jsonl"));
 const now = () => new Date().toISOString();
+const todayUtc = () => now().slice(0, 10);
 
-// 커밋8에서 영속 상태(spent/calls_today 갱신)로 교체 예정 — 지금은 판정 입력만 구성
-async function buildPolicyInput(intent: Record<string, unknown>) {
-  const res = await fetch(`${POLICY_URL}/envelope/${intent.envelope_id}`);
+// 봉투 정의(policy 정본)에 런타임 상태(spent/calls — executor 정본)를 얹어 판정 입력 구성
+async function buildPolicyInput(envelopeId: string) {
+  const res = await fetch(`${POLICY_URL}/envelope/${envelopeId}`);
   if (!res.ok) throw new Error(`봉투 조회 실패: ${res.status}`);
   const envelope = await res.json();
-  const context = { calls_today: 0, now: now() };
+  const state = getState(envelopeId, todayUtc(), Math.round(envelope.budget.spent * 1_000_000));
+  envelope.budget.spent = state.spentMicro / 1_000_000;
+  const context = { calls_today: state.callsToday, now: now() };
   return { envelope, context };
 }
 
@@ -52,7 +56,7 @@ async function handlePurchaseIntent(intent: Record<string, unknown>) {
   audit.append({ ts: now(), type: "intent_received", intent_id, intent });
 
   // ── 정책 판정 — 결제로 가는 유일한 관문 (R4) ────────────────────────────────
-  const { envelope, context } = await buildPolicyInput(intent);
+  const { envelope, context } = await buildPolicyInput(String(intent.envelope_id));
   const policyRes = await fetch(`${POLICY_URL}/evaluate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -75,6 +79,7 @@ async function handlePurchaseIntent(intent: Record<string, unknown>) {
       expectedPayTo: String(intent.seller_wallet),
       maxMicroAmount: BigInt(Math.round(Number(intent.quoted_price) * 1_000_000)),
     });
+    recordPayment(String(intent.envelope_id), Number(result.offer.maxAmountRequired), todayUtc());
     audit.append({
       ts: now(),
       type: "payment_executed",
@@ -107,10 +112,25 @@ createServer((req, res) => {
     if (req.method === "GET" && req.url === "/health") {
       return send(res, 200, { service: "executor", policy_url: POLICY_URL });
     }
+    if (req.method === "GET" && req.url?.startsWith("/envelope-status")) {
+      const envelopeId = new URL(req.url, "http://localhost").searchParams.get("id") ?? "env_001";
+      const { envelope, context } = await buildPolicyInput(envelopeId);
+      return send(res, 200, {
+        envelope,
+        calls_today: context.calls_today,
+        remaining: Math.round((envelope.budget.total - envelope.budget.spent) * 1_000_000) / 1_000_000,
+      });
+    }
     if (req.method === "POST" && req.url === "/purchase-intent") {
       const intent = await readBody(req);
       const result = await handlePurchaseIntent(intent);
       return send(res, 200, result);
+    }
+    // 데모 전용: 관리자 행위 시뮬레이션(시나리오 2의 잔액 조작). 판정에는 관여하지 않음
+    if (req.method === "POST" && req.url === "/admin/envelope-state") {
+      const body = await readBody(req);
+      setSpent(String(body.envelope_id), Math.round(Number(body.spent) * 1_000_000));
+      return send(res, 200, { ok: true });
     }
     return send(res, 404, { error: "not found" });
   })().catch((e) => {
