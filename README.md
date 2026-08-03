@@ -1,4 +1,7 @@
-# Envelope
+# Envelope (BoundWallet)
+
+**라이브 데모: https://boundwallet.sigongan.com** · 배포 상세: [docs/deploy.md](docs/deploy.md)
+
 
 > AI에게 한도가 박힌 봉투를 쥐여주고, 그 안에서는 사람 없이 알아서 사게 하는 결제 에이전트.
 > **AI가 속아도 봉투 밖으로는 한 푼도 나가지 않는다.**

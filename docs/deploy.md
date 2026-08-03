@@ -6,7 +6,8 @@
 
 | 서비스 | URL |
 |---|---|
-| **web (데모 UI)** | https://web-6fpgl7hhqq-uc.a.run.app |
+| **데모 UI (제출용)** | **https://boundwallet.sigongan.com** |
+| web (Cloud Run 원본) | https://web-6fpgl7hhqq-uc.a.run.app |
 | executor | https://executor-6fpgl7hhqq-uc.a.run.app |
 | agent | https://agent-6fpgl7hhqq-uc.a.run.app |
 | policy | https://policy-6fpgl7hhqq-uc.a.run.app |
@@ -29,32 +30,22 @@
 - 조직 정책 `iam.allowedPolicyMemberDomains`는 **boundwallet 프로젝트에 한해 `allowAll`로 예외** 적용됨
   (admin@sigongan.com이 설정). 이로써 `allUsers` 공개 invoker 바인딩이 가능해졌다.
 
-## 커스텀 도메인 (boundwallet.sigongan.com) — owner 작업 필요
+## 커스텀 도메인: https://boundwallet.sigongan.com
 
-현재 `sigongan.com`이 이 계정으로 **소유 확인(verify)되어 있지 않아** 매핑이 거부된다
-(`You currently have no verified domains`). 두 경로 중 하나를 택한다.
+Google Cloud Run 도메인 매핑 방식으로 구성했다 (Cloudflare Host Header Override는 유료라 미사용).
 
-### 경로 A — Google 도메인 매핑 (정석)
+구성 완료 상태:
+- `dev-team@sigongan.com`으로 Search Console 도메인 소유 확인 (`gcloud domains verify sigongan.com`).
+  ※ 확인 계정과 매핑 생성 계정이 같아야 한다. 다른 계정으로 확인했다면 Search Console
+  설정 → 사용자 및 권한에서 해당 계정을 **소유자**로 추가해도 된다.
+- 매핑 생성: `bash deploy/domain-map.sh` (또는 `gcloud beta run domain-mappings create`).
+- Cloudflare DNS: `CNAME  boundwallet → ghs.googlehosted.com`, **DNS only(프록시 끔)**.
+  프록시를 켜면 Google이 인증서를 발급하지 못한다.
 
-1. owner가 소유 확인 실행 → 브라우저에서 Search Console 절차:
-   ```
-   gcloud domains verify sigongan.com
-   ```
-   안내되는 TXT 레코드를 Cloudflare DNS(sigongan.com)에 추가하고 확인 완료.
-   ※ 확인은 매핑을 만들 계정(dev-team@sigongan.com)으로 해야 한다.
-2. 확인 후 매핑 생성:
-   ```
-   bash deploy/domain-map.sh
-   ```
-3. 출력되는 레코드를 Cloudflare에 추가 (**DNS only / 회색 구름**, 프록시 끄기).
-   인증서 발급까지 보통 15분~1시간.
-
-### 경로 B — Cloudflare 프록시 (도메인 확인 불필요, 빠름)
-
-Cloudflare 대시보드(sigongan.com)에서:
-1. DNS: `CNAME  boundwallet  web-6fpgl7hhqq-uc.a.run.app` (**Proxied / 주황 구름**)
-2. Rules → Origin Rules: 대상 `boundwallet.sigongan.com`,
-   **Host Header Override = `web-6fpgl7hhqq-uc.a.run.app`**
-   (이 설정이 없으면 Cloud Run이 Host를 인식하지 못해 404)
-
-경로 B는 Google 소유 확인 없이 즉시 동작하며, TLS는 Cloudflare가 처리한다.
+TLS 인증서는 Google이 자동 발급하며 DNS 반영 후 보통 15분~1시간 걸린다.
+상태 확인:
+```
+gcloud beta run domain-mappings describe --domain=boundwallet.sigongan.com \
+  --region=us-central1 --project=boundwallet
+```
+`CertificateProvisioned=True`가 되면 접속 가능하다.
