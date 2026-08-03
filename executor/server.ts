@@ -276,6 +276,17 @@ createServer((req, res) => {
       advertised = Array.isArray(body.seller_ids) ? (body.seller_ids as string[]) : null;
       return send(res, 200, { advertised });
     }
+    // 라이브 에이전트 사고 로그 유입구 — executor가 감사 로그의 유일한 기록자(§6.1).
+    // 에이전트가 discover/quote/decide 스텝을 여기로 보내면 SSE로 UI에 흐른다.
+    if (req.method === "POST" && req.url === "/agent-event") {
+      const body = await readBody(req);
+      const type = String(body.type);
+      if (!["agent_started", "agent_step", "agent_finished"].includes(type)) {
+        return send(res, 400, { error: `invalid agent event type: ${type}` });
+      }
+      audit.append({ ts: now(), ...(body as object) } as Parameters<typeof audit.append>[0]);
+      return send(res, 200, { ok: true });
+    }
     return send(res, 404, { error: "not found" });
   })().catch((e) => {
     console.error("[executor] error:", e);

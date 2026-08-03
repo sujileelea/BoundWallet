@@ -14,8 +14,13 @@ export interface AuditEntry {
     | "payment_blocked"
     | "payment_failed"
     | "data_received"
-    | "receipt";
-  intent_id: string;
+    | "receipt"
+    // 라이브 에이전트 사고 로그 (M6 ②번 패널). intent 생성 전이라 run_id로 묶는다.
+    | "agent_started"
+    | "agent_step"
+    | "agent_finished";
+  intent_id?: string;
+  run_id?: string;
   [key: string]: unknown;
 }
 
@@ -33,6 +38,6 @@ export class JsonlSink implements AuditSink {
 
   append(entry: AuditEntry): void {
     appendFileSync(this.path, JSON.stringify(entry) + "\n");
-    console.log(`[audit] ${entry.type} ${entry.intent_id}`);
+    console.log(`[audit] ${entry.type} ${entry.intent_id ?? entry.run_id ?? ""}`);
   }
 }
