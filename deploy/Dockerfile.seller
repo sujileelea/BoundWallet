@@ -1,0 +1,8 @@
+# seller (Node 26 네이티브 TS). SELLER_ID 환경변수로 인스턴스 구분. 컨텍스트 = 레포 루트.
+FROM node:26-slim
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+COPY seller ./seller
+COPY scripts/devnet-addresses.json ./scripts/devnet-addresses.json
+CMD ["node", "seller/server.ts"]

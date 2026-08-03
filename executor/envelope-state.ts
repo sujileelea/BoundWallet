@@ -13,7 +13,8 @@ interface EnvelopeState {
   calls: Record<string, number>; // ISO 날짜(UTC) → 승인된 결제 건수
 }
 
-const STATE_PATH = join(import.meta.dirname, "state", "envelope-state.json");
+// Cloud Run 대응: 쓰기 경로 env 오버라이드(클라우드는 /tmp)
+const STATE_PATH = process.env.STATE_PATH ?? join(import.meta.dirname, "state", "envelope-state.json");
 
 function readAll(): Record<string, EnvelopeState> {
   if (!existsSync(STATE_PATH)) return {};

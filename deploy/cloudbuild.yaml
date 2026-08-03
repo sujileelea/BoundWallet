@@ -1,0 +1,14 @@
+# 범용 빌드: _DOCKERFILE로 지정한 Dockerfile을 레포 루트 컨텍스트로 빌드·푸시.
+# _BUILD_ARGS로 web의 NEXT_PUBLIC_* build-arg를 넘긴다(없으면 빈 값).
+steps:
+  - name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - docker build -f ${_DOCKERFILE} ${_BUILD_ARGS} -t ${_IMAGE} .
+images:
+  - ${_IMAGE}
+substitutions:
+  _BUILD_ARGS: ""
+options:
+  logging: CLOUD_LOGGING_ONLY

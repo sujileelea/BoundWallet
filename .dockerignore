@@ -1,0 +1,23 @@
+# 이미지에 절대 들어가면 안 되는 것 — 비밀·불필요
+executor/wallet/
+scripts/keys/
+**/*keypair*.json
+.env
+**/.env
+**/*.env
+
+# 빌드 산출물·의존성 (이미지 내에서 재설치/재빌드)
+node_modules/
+web/node_modules/
+web/.next/
+.venv/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+executor/logs/
+executor/state/
+
+# 기타
+.git/
+.DS_Store
+docs/

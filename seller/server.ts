@@ -139,13 +139,14 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
   });
 }
 
+const LISTEN_PORT = Number(process.env.PORT ?? config.port); // Cloud Run은 PORT 주입
 createServer((req, res) => {
   handle(req, res).catch((e) => {
     console.error(`[${config.seller_id}] handler error:`, e);
     if (!res.headersSent) send(res, 500, { error: "internal error" });
   });
-}).listen(config.port, () => {
+}).listen(LISTEN_PORT, () => {
   console.log(
-    `[${config.seller_id}] listening on :${config.port} — ${config.price_usdc} USDC/query, verify=${process.env.SELLER_VERIFY_MODE ?? "onchain"}, role=${config.role}`,
+    `[${config.seller_id}] listening on :${LISTEN_PORT} — ${config.price_usdc} USDC/query, verify=${process.env.SELLER_VERIFY_MODE ?? "onchain"}, role=${config.role}`,
   );
 });

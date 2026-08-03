@@ -1,0 +1,12 @@
+# executor (Node 26 네이티브 TS, 빌드 스텝 없음). 빌드 컨텍스트 = 레포 루트.
+FROM node:26-slim
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+COPY executor ./executor
+COPY seller/config ./seller/config
+COPY scripts ./scripts
+COPY policy/rulesets ./policy/rulesets
+COPY shared ./shared
+ENV AUDIT_PATH=/tmp/audit.jsonl STATE_PATH=/tmp/envelope-state.json
+CMD ["node", "executor/server.ts"]

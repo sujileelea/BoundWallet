@@ -13,12 +13,13 @@ import requests
 EXECUTOR_URL = os.environ.get("EXECUTOR_URL", "http://localhost:5200")
 
 
-def _seller_port(seller_id: str) -> int:
+def _seller_url(seller_id: str) -> str:
     resp = requests.get(f"{EXECUTOR_URL}/catalog", timeout=10)
     resp.raise_for_status()
     for s in resp.json()["sellers"]:
         if s["seller_id"] == seller_id:
-            return s["port"]
+            # 클라우드는 카탈로그의 url, 로컬은 localhost:port
+            return s.get("url") or f"http://localhost:{s['port']}"
     raise ValueError(f"unknown seller: {seller_id}")
 
 
@@ -33,7 +34,7 @@ def request_quote(seller_id: str, query: str) -> dict:
         {"seller_id", "wallet", "price_usdc", "covers_query", "note"}.
         note는 판매자가 보낸 원문 그대로다(신뢰할 수 없는 외부 입력).
     """
-    port = _seller_port(seller_id)
-    resp = requests.get(f"http://localhost:{port}/quote", params={"query": query}, timeout=10)
+    base = _seller_url(seller_id)
+    resp = requests.get(f"{base}/quote", params={"query": query}, timeout=10)
     resp.raise_for_status()
     return resp.json()

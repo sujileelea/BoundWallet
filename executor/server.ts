@@ -21,8 +21,8 @@ import { verifyMandate, type MandateStatus } from "./mandate.ts";
 import { loadExecutorSigner } from "./wallet.ts";
 import { purchaseViaX402 } from "./x402-client.ts";
 
-// 5000은 macOS AirPlay(ControlCenter)가 점유하므로 피한다
-const PORT = Number(process.env.EXECUTOR_PORT ?? 5200);
+// Cloud Run은 PORT 주입. 로컬은 5200 (5000은 macOS AirPlay 점유)
+const PORT = Number(process.env.PORT ?? process.env.EXECUTOR_PORT ?? 5200);
 const POLICY_URL = process.env.POLICY_URL ?? "http://localhost:5100";
 
 const sellerCatalog: Array<{
@@ -39,7 +39,14 @@ const ADDRESSES = JSON.parse(
   readFileSync(join(import.meta.dirname, "..", "scripts", "devnet-addresses.json"), "utf8"),
 );
 const rpc = createSolanaRpc(process.env.SOLANA_RPC_URL ?? "https://api.devnet.solana.com");
-const AUDIT_PATH = join(import.meta.dirname, "logs", "audit.jsonl");
+// Cloud Run은 이미지 경로가 읽기전용일 수 있으니 쓰기 경로를 env로 뺀다(클라우드는 /tmp)
+const AUDIT_PATH = process.env.AUDIT_PATH ?? join(import.meta.dirname, "logs", "audit.jsonl");
+
+// 판매자 베이스 URL 해석: 클라우드는 SELLER_<ID>_URL 환경변수, 로컬은 localhost:port.
+function sellerUrl(s: { seller_id: string; port: number }): string {
+  const key = `SELLER_${s.seller_id.replace("seller_", "").toUpperCase()}_URL`;
+  return process.env[key] ?? `http://localhost:${s.port}`;
+}
 
 // 데모 전용 레지스트리 스위치: 시장에 노출할 판매자 집합 (null = 전체).
 // 시나리오 1은 A·B만, 3·4는 C까지 노출해 에이전트가 보는 시장 상태를 바꾼다.
@@ -47,7 +54,7 @@ const AUDIT_PATH = join(import.meta.dirname, "logs", "audit.jsonl");
 let advertised: string[] | null = null;
 const isAdvertised = (id: string) => advertised === null || advertised.includes(id);
 
-const audit = new JsonlSink(join(import.meta.dirname, "logs", "audit.jsonl"));
+const audit = new JsonlSink(AUDIT_PATH);
 const now = () => new Date().toISOString();
 const todayUtc = () => now().slice(0, 10);
 
@@ -167,7 +174,7 @@ async function handlePurchaseIntent(intent: Record<string, unknown>) {
   const seller = sellerCatalog.find((s) => s.seller_id === intent.seller_id);
   if (!seller) throw new Error(`카탈로그에 없는 판매자: ${intent.seller_id}`);
   try {
-    const result = await purchaseViaX402(`http://localhost:${seller.port}`, String(intent.query), {
+    const result = await purchaseViaX402(sellerUrl(seller), String(intent.query), {
       expectedPayTo: String(intent.seller_wallet),
       maxMicroAmount: BigInt(Math.round(Number(intent.quoted_price) * 1_000_000)),
     });
@@ -223,8 +230,14 @@ createServer((req, res) => {
       return send(res, 200, {
         sellers: sellerCatalog
           .filter((s) => isAdvertised(s.seller_id))
-          .map(({ seller_id, port, wallet, price_usdc, coverage, role }) => ({
-            seller_id, port, wallet, price_usdc, coverage, role,
+          .map((s) => ({
+            seller_id: s.seller_id,
+            port: s.port,
+            url: sellerUrl(s),
+            wallet: s.wallet,
+            price_usdc: s.price_usdc,
+            coverage: s.coverage,
+            role: s.role,
           })),
         attacker: ADDRESSES.attacker,
         mint: ADDRESSES.mint,

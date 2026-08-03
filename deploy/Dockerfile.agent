@@ -1,0 +1,9 @@
+# agent (Python 3.13 + ADK, Vertex AI 백엔드). 컨텍스트 = 레포 루트.
+# R1: 이미지에 Solana 키 없음. Vertex 인증은 Cloud Run 서비스 계정(ADC)으로.
+FROM python:3.13-slim
+WORKDIR /app
+COPY agent/requirements.txt ./agent/requirements.txt
+RUN pip install --no-cache-dir -r agent/requirements.txt
+COPY agent ./agent
+ENV HOST=0.0.0.0 GOOGLE_GENAI_USE_VERTEXAI=TRUE
+CMD ["python", "-m", "agent.service"]

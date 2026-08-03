@@ -25,7 +25,8 @@ if ENV_PATH.exists():
             os.environ.setdefault(k.strip(), v.strip())
 
 EXECUTOR_URL = os.environ.get("EXECUTOR_URL", "http://localhost:5200")
-PORT = int(os.environ.get("AGENT_PORT", "5300"))
+PORT = int(os.environ.get("PORT", os.environ.get("AGENT_PORT", "5300")))  # Cloud Run은 PORT 주입
+HOST = os.environ.get("HOST", "127.0.0.1")  # Cloud Run은 0.0.0.0
 
 from agent.run import new_run_id, run_goal  # noqa: E402
 
@@ -93,4 +94,4 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     print(f"[agent] listening on :{PORT} — Vertex {os.environ.get('GEMINI_MODEL')}, 키 없음(R1)")
-    ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

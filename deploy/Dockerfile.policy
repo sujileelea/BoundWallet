@@ -1,0 +1,9 @@
+# policy (Python 3.13 순수 함수 서비스). 컨텍스트 = 레포 루트.
+FROM python:3.13-slim
+WORKDIR /app
+COPY policy/requirements.txt ./policy/requirements.txt
+RUN pip install --no-cache-dir -r policy/requirements.txt
+COPY policy ./policy
+COPY shared ./shared
+ENV HOST=0.0.0.0
+CMD ["python", "-m", "policy.service"]

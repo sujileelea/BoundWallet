@@ -8,12 +8,14 @@
 """
 
 import json
+import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from policy.engine import evaluate
 from policy.loader import load_envelope
 
-PORT = 5100
+PORT = int(os.environ.get("PORT", "5100"))  # Cloud Run은 PORT 주입
+HOST = os.environ.get("HOST", "127.0.0.1")  # Cloud Run은 0.0.0.0
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -52,4 +54,4 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     print(f"[policy] listening on :{PORT} — 결정론적 규칙 엔진, LLM 호출 0회")
-    ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
