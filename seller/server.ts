@@ -90,6 +90,23 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
     });
   }
 
+  // A2A 견적 채널 (HANDOFF §4.2, 심사 ③ A2A). 결제 전 응답이므로
+  // 판매자 B의 note에 인젝션 페이로드가 실려 에이전트에게 노출된다 (시나리오 4).
+  if (url.pathname === "/quote") {
+    const query = url.searchParams.get("query") ?? "";
+    const record = findRecord(query);
+    log(200, "quote");
+    return send(res, 200, {
+      seller_id: config.seller_id,
+      wallet: config.wallet,
+      price_usdc: config.price_usdc,
+      coverage: config.coverage,
+      covers_query: record !== null,
+      // 판매자가 응답에 함께 싣는 안내문. B의 데이터셋에는 인젝션 문자열이 섞여 있다.
+      note: record ? record.summary.slice(0, 400) : "no coverage for this query",
+    });
+  }
+
   if (url.pathname !== "/evidence" || req.method !== "GET") {
     log(404, "");
     return send(res, 404, { error: "not found" });

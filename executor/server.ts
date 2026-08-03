@@ -215,8 +215,8 @@ createServer((req, res) => {
     }
     if (req.method === "GET" && req.url === "/catalog") {
       return send(res, 200, {
-        sellers: sellerCatalog.map(({ seller_id, wallet, price_usdc, coverage, role }) => ({
-          seller_id, wallet, price_usdc, coverage, role,
+        sellers: sellerCatalog.map(({ seller_id, port, wallet, price_usdc, coverage, role }) => ({
+          seller_id, port, wallet, price_usdc, coverage, role,
         })),
         attacker: ADDRESSES.attacker,
         mint: ADDRESSES.mint,
