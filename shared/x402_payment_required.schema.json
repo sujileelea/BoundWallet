@@ -2,27 +2,47 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "x402_payment_required.schema.json",
   "title": "X402PaymentRequired",
-  "description": "seller → executor. 402 응답 본문. ⚠️ 잠정: 스파이크 S2에서 @x402/svm 실스펙 확정 후 이 스키마를 맞춘다 (HANDOFF §7.4)",
+  "description": "seller → executor. 402 응답 본문. x402 v2 표준 형상(@x402/core의 PaymentRequired) — 스파이크 S2 확인 후 정합 완료 (HANDOFF §7.4)",
   "type": "object",
-  "required": ["x402Version", "accepts"],
+  "required": ["x402Version", "resource", "accepts"],
   "properties": {
     "x402Version": { "type": "integer" },
+    "error": { "type": "string", "description": "결제 거부 사유(재요청 시)" },
+    "resource": {
+      "type": "object",
+      "description": "ResourceInfo",
+      "required": ["url"],
+      "properties": {
+        "url": { "type": "string" },
+        "description": { "type": "string" },
+        "mimeType": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "iconUrl": { "type": "string" }
+      }
+    },
     "accepts": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["scheme", "network", "asset", "maxAmountRequired", "payTo", "resource"],
+        "description": "PaymentRequirements",
+        "required": ["scheme", "network", "asset", "amount", "payTo", "maxTimeoutSeconds"],
         "properties": {
-          "scheme": { "type": "string" },
-          "network": { "const": "solana-devnet" },
-          "asset": { "type": "string" },
-          "maxAmountRequired": { "type": "string", "description": "최소 단위(USDC 6 decimals) 문자열" },
+          "scheme": { "const": "exact" },
+          "network": {
+            "type": "string",
+            "pattern": "^[^:]+:[^:]+$",
+            "description": "CAIP-2 네트워크 식별자 (@x402/svm의 SOLANA_DEVNET_CAIP2)"
+          },
+          "asset": { "type": "string", "description": "SPL 민트 주소(base58)" },
+          "amount": { "type": "string", "description": "최소 단위(6 decimals) 문자열" },
           "payTo": { "type": "string", "description": "수취 지갑 주소(base58)" },
-          "resource": { "type": "string" },
-          "description": { "type": "string" }
+          "maxTimeoutSeconds": { "type": "integer", "minimum": 1 },
+          "extra": { "type": "object" }
         }
       }
-    }
+    },
+    "extensions": { "type": "object" }
   }
 }

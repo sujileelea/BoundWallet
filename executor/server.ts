@@ -178,7 +178,7 @@ async function handlePurchaseIntent(intent: Record<string, unknown>) {
       expectedPayTo: String(intent.seller_wallet),
       maxMicroAmount: BigInt(Math.round(Number(intent.quoted_price) * 1_000_000)),
     });
-    recordPayment(String(intent.envelope_id), Number(result.offer.maxAmountRequired), todayUtc());
+    recordPayment(String(intent.envelope_id), Number(result.offer.amount), todayUtc());
     audit.append({
       ts: now(),
       type: "payment_executed",

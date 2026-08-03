@@ -12,6 +12,7 @@ import { join } from "node:path";
 
 import { createSolanaRpc, createSolanaRpcSubscriptions, type Address } from "@solana/kit";
 import { TOKEN_PROGRAM_ADDRESS, findAssociatedTokenPda, getTransferCheckedInstruction } from "@solana-program/token";
+import { SOLANA_DEVNET_CAIP2 } from "@x402/svm";
 
 import { explorerTx, sendTx, type Clients } from "../scripts/solana-helpers.ts";
 import { loadExecutorSigner } from "./wallet.ts";
@@ -26,14 +27,15 @@ const clients: Clients = {
   rpcSubscriptions: createSolanaRpcSubscriptions("wss://api.devnet.solana.com"),
 };
 
+// x402 v2 PaymentRequirements (@x402/core types)
 export interface X402Offer {
   scheme: string;
   network: string;
   asset: string;
-  maxAmountRequired: string;
+  amount: string;
   payTo: string;
-  resource: string;
-  description?: string;
+  maxTimeoutSeconds: number;
+  extra?: Record<string, unknown>;
 }
 
 export interface PurchaseResult {
@@ -61,14 +63,13 @@ export async function purchaseViaX402(
   const first = await fetch(resourceUrl);
   if (first.status !== 402) throw new Error(`402 기대, 실제 ${first.status}`);
   const offer: X402Offer = (await first.json()).accepts[0];
-  if (offer.network !== "solana-devnet") throw new Error(`지원하지 않는 네트워크: ${offer.network}`);
+  if (offer.network !== SOLANA_DEVNET_CAIP2) throw new Error(`지원하지 않는 네트워크: ${offer.network}`);
+  if (offer.asset !== ADDRESSES.mint) throw new Error(`지원하지 않는 자산: ${offer.asset}`);
   if (guards.expectedPayTo && offer.payTo !== guards.expectedPayTo) {
     throw new Error(`payTo 불일치: 402 오퍼 ${offer.payTo} ≠ 정책 승인 지갑 ${guards.expectedPayTo}`);
   }
-  if (guards.maxMicroAmount !== undefined && BigInt(offer.maxAmountRequired) > guards.maxMicroAmount) {
-    throw new Error(
-      `402 청구액 ${offer.maxAmountRequired} > 정책이 심사한 견적 ${guards.maxMicroAmount}`,
-    );
+  if (guards.maxMicroAmount !== undefined && BigInt(offer.amount) > guards.maxMicroAmount) {
+    throw new Error(`402 청구액 ${offer.amount} > 정책이 심사한 견적 ${guards.maxMicroAmount}`);
   }
 
   // 2단계: 위임 전송 — admin ATA에서 판매자 ATA로, executor는 delegate 서명만
@@ -84,14 +85,19 @@ export async function purchaseViaX402(
       mint: ADDRESSES.mint as Address,
       destination: destinationAta,
       authority: executor,
-      amount: BigInt(offer.maxAmountRequired),
+      amount: BigInt(offer.amount),
       decimals: DECIMALS,
     }),
   ]);
 
-  // 3단계: 증빙 첨부 재요청 → 데이터 + 어테스테이션
+  // 3단계: x402 v2 PaymentPayload를 X-PAYMENT로 첨부해 재요청
+  //   accepted에 402에서 받은 요구사항을 그대로 되돌려 "이 조건에 동의했다"를 표명한다.
   const proof = Buffer.from(
-    JSON.stringify({ scheme: "onchain-tx", network: "solana-devnet", signature }),
+    JSON.stringify({
+      x402Version: 2,
+      accepted: offer,
+      payload: { scheme: offer.scheme, network: offer.network, signature },
+    }),
   ).toString("base64");
   const second = await fetch(resourceUrl, { headers: { "X-PAYMENT": proof } });
   if (second.status !== 200) {
@@ -102,7 +108,7 @@ export async function purchaseViaX402(
     offer,
     signature,
     explorer_url: explorerTx(signature),
-    amount_usdc: Number(offer.maxAmountRequired) / 1_000_000,
+    amount_usdc: Number(offer.amount) / 1_000_000,
     response: await second.json(),
   };
 }

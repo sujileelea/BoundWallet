@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "x402_payment_payload.schema.json",
+  "title": "X402PaymentPayload",
+  "description": "executor → seller. X-PAYMENT 헤더의 base64 디코딩 결과. x402 v2 표준 형상(@x402/core의 PaymentPayload). accepted에 402에서 받은 요구사항을 그대로 되돌려 '이 조건에 동의했다'를 표명한다 — 판매자는 이를 자신이 제시한 값과 대조해 금액·수취인 바꿔치기를 차단한다.",
+  "type": "object",
+  "required": ["x402Version", "accepted", "payload"],
+  "properties": {
+    "x402Version": { "type": "integer" },
+    "accepted": {
+      "type": "object",
+      "description": "402의 accepts[] 중 클라이언트가 선택한 PaymentRequirements",
+      "required": ["scheme", "network", "asset", "amount", "payTo"],
+      "properties": {
+        "scheme": { "const": "exact" },
+        "network": { "type": "string", "pattern": "^[^:]+:[^:]+$" },
+        "asset": { "type": "string" },
+        "amount": { "type": "string" },
+        "payTo": { "type": "string" },
+        "maxTimeoutSeconds": { "type": "integer" },
+        "extra": { "type": "object" }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "description": "스킴별 정산 증빙. 여기서는 devnet 트랜잭션 서명(자체 온체인 검증 — S2 대안 경로)",
+      "required": ["signature"],
+      "properties": {
+        "scheme": { "type": "string" },
+        "network": { "type": "string" },
+        "signature": { "type": "string", "description": "Solana 트랜잭션 서명(base58)" }
+      }
+    },
+    "extensions": { "type": "object" }
+  }
+}

@@ -5,17 +5,26 @@
 //   GET /evidence?query=... +X-PAYMENT → 증빙 검증 → 200 + 데이터 + 어테스테이션
 //
 // 실행: SELLER_ID=seller_a node seller/server.ts  (Node 26 네이티브 TS)
-// 402 본문 형상은 shared/x402_payment_required.schema.json — S2 확정 전 잠정.
+//
+// 402 본문은 x402 v2 표준 형상(@x402/core의 PaymentRequired/PaymentRequirements)을 따른다:
+//   { x402Version, resource: ResourceInfo, accepts: [{ scheme, network(CAIP-2), asset(mint),
+//     amount(atomic), payTo, maxTimeoutSeconds, extra }] }
+// 네트워크 식별자·상수는 @x402/svm에서 가져온다. 정산 검증은 자체 온체인 확인(S2 대안 경로).
 
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { SOLANA_DEVNET_CAIP2 } from "@x402/svm";
+
 import { buildAttestation, type EvidenceRecord } from "./attestation.ts";
 import { verifyPayment } from "./verify.ts";
 
 const SELLER_DIR = dirname(fileURLToPath(import.meta.url));
+const ADDRESSES = JSON.parse(
+  readFileSync(join(SELLER_DIR, "..", "scripts", "devnet-addresses.json"), "utf8"),
+);
 
 interface SellerConfig {
   seller_id: string;
@@ -43,20 +52,29 @@ const records: EvidenceRecord[] = JSON.parse(
 
 const microAmount = String(Math.round(config.price_usdc * 1_000_000));
 
+// x402 v2 PaymentRequirements — 결제 증빙의 `accepted`와 바이트 단위로 일치해야 한다
+function paymentRequirements() {
+  return {
+    scheme: "exact",
+    network: SOLANA_DEVNET_CAIP2,
+    asset: ADDRESSES.mint,
+    amount: microAmount,
+    payTo: config.wallet,
+    maxTimeoutSeconds: 120,
+    extra: { decimals: 6, symbol: "USDC-M", note: "devnet 모사 USDC (스파이크 S1 대안 경로)" },
+  };
+}
+
 function paymentRequiredBody() {
   return {
     x402Version: 2,
-    accepts: [
-      {
-        scheme: "exact",
-        network: "solana-devnet",
-        asset: "USDC",
-        maxAmountRequired: microAmount,
-        payTo: config.wallet,
-        resource: "/evidence",
-        description: "clinical evidence lookup, 1 query",
-      },
-    ],
+    resource: {
+      url: "/evidence",
+      description: "clinical evidence lookup, 1 query",
+      mimeType: "application/json",
+      serviceName: `envelope-evidence-${config.seller_id}`,
+    },
+    accepts: [paymentRequirements()],
   };
 }
 
@@ -124,7 +142,7 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
     return send(res, 402, paymentRequiredBody());
   }
 
-  const verdict = await verifyPayment(paymentHeader, { microAmount, payTo: config.wallet });
+  const verdict = await verifyPayment(paymentHeader, paymentRequirements());
   if (!verdict.ok) {
     log(402, `payment rejected: ${verdict.reason}`);
     return send(res, 402, { ...paymentRequiredBody(), error: verdict.reason });
