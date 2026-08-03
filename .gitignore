@@ -24,3 +24,7 @@ __pycache__/
 
 # OS/편집기
 .DS_Store
+
+# 로컬 전용 — 원격에 올리지 않음
+CLAUDE.md
+docs/TEAM-BRIEF.md
