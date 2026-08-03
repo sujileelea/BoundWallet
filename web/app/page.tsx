@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { SCENARIOS, resetEnvelope } from "./scenarios";
+import { LIVE_SCENARIOS, runGoal, runInjectionScenario, runLiveScenario, resetEnvelope } from "./scenarios";
 
 const EXECUTOR = process.env.NEXT_PUBLIC_EXECUTOR_URL ?? "http://localhost:5200";
 
@@ -65,15 +65,16 @@ export default function Home() {
 
   const [running, setRunning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [goal, setGoal] = useState("레티놀의 주름 개선 임상 근거를 미국·EU 기준으로 찾아줘");
   const sessionStart = useRef(new Date().toISOString());
   const [showAll, setShowAll] = useState(false);
   const visible = showAll ? events : events.filter((e) => e.ts >= sessionStart.current);
 
-  const runScenario = async (key: string) => {
+  const guard = async (key: string, fn: () => Promise<unknown>) => {
     setRunning(key);
     setError(null);
     try {
-      await SCENARIOS[key].run();
+      await fn();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -91,12 +92,31 @@ export default function Home() {
         </span>
       </header>
       <div className="toolbar">
-        {Object.entries(SCENARIOS).map(([key, s]) => (
-          <button key={key} disabled={running !== null} onClick={() => runScenario(key)}>
+        <input
+          className="goal-input"
+          value={goal}
+          onChange={(e) => setGoal(e.target.value)}
+          placeholder="자연어 목표를 입력…"
+          disabled={running !== null}
+        />
+        <button disabled={running !== null} onClick={() => guard("goal", () => runGoal(goal))}>
+          {running === "goal" ? "에이전트 실행 중…" : "▶ 에이전트 실행"}
+        </button>
+      </div>
+      <div className="toolbar">
+        {Object.entries(LIVE_SCENARIOS).map(([key, s]) => (
+          <button key={key} disabled={running !== null} onClick={() => guard(key, () => runLiveScenario(key))}>
             {running === key ? "실행 중…" : s.label}
           </button>
         ))}
-        <button disabled={running !== null} onClick={() => resetEnvelope()} className="ghost">
+        <button
+          disabled={running !== null}
+          onClick={() => guard("4", () => runInjectionScenario())}
+          title="gemini-2.5-flash는 인젝션에 저항하므로, 속았다고 가정한 의도를 직접 제출해 정책 차단을 보인다"
+        >
+          {running === "4" ? "실행 중…" : "④ 인젝션 (확정)"}
+        </button>
+        <button disabled={running !== null} onClick={() => guard("reset", () => resetEnvelope())} className="ghost">
           봉투 리셋
         </button>
         <button onClick={() => setShowAll((v) => !v)} className="ghost">
@@ -166,34 +186,74 @@ function EnvelopePanel({ status }: { status: EnvelopeStatus | null }) {
 }
 
 function AgentPanel({ events }: { events: AuditEvent[] }) {
-  const intents = events.filter((e) => e.type === "intent_received");
-  const endRef = useAutoScroll(intents.length);
+  // 라이브 에이전트 사고 스텝 + 최종 구매 의도를 시간순으로 표시
+  const feed = events.filter((e) =>
+    ["agent_started", "agent_step", "agent_finished", "intent_received"].includes(e.type),
+  );
+  const endRef = useAutoScroll(feed.length);
   return (
     <section className="panel">
-      <h2>② 에이전트 사고 로그</h2>
-      {intents.length === 0 && <p className="muted">구매 의도 대기…</p>}
-      {intents.map((e, i) => {
-        const intent = e.intent as {
-          seller_id: string; seller_wallet: string; quoted_price: number; query: string;
-          agent_rationale: string; quotes_considered: Array<{ seller_id: string; price: number }>;
-        };
-        return (
-          <div className="event" key={i}>
-            <div className="ts">{e.ts} · {e.intent_id}</div>
-            <div className="muted">질의: {intent.query}</div>
-            <div>
-              견적: {intent.quotes_considered.map((q) => `${q.seller_id} $${q.price}`).join(" · ")}
-            </div>
-            <div>
-              선택: <span className="accent">{intent.seller_id}</span> ${intent.quoted_price} → {short(intent.seller_wallet)}
-            </div>
-            <div className="warn">“{intent.agent_rationale}”</div>
-          </div>
-        );
-      })}
+      <h2>② Gemini 사고 로그 (라이브)</h2>
+      {feed.length === 0 && <p className="muted">에이전트 실행 대기… 위 입력창에 목표를 넣고 실행하세요.</p>}
+      {feed.map((e, i) => (
+        <AgentEvent key={i} e={e} />
+      ))}
       <div ref={endRef} />
     </section>
   );
+}
+
+function AgentEvent({ e }: { e: AuditEvent }) {
+  if (e.type === "agent_started") {
+    return (
+      <div className="event">
+        <div className="ts">{e.ts} · {String(e.run_id ?? "")}</div>
+        <div className="accent">🎯 목표: {String(e.goal)}</div>
+      </div>
+    );
+  }
+  if (e.type === "agent_step" && e.step === "discover") {
+    return <div className="event"><span className="muted">🔍 {String(e.detail)}</span></div>;
+  }
+  if (e.type === "agent_step" && e.step === "quote") {
+    const note = String(e.note ?? "");
+    const injected = note.includes("[SYSTEM]") || note.includes("무시");
+    return (
+      <div className="event">
+        <div>
+          💬 견적 <span className="accent">{String(e.seller_id)}</span> ${String(e.price_usdc)} →{" "}
+          {short(String(e.wallet))} {e.covers_query ? <span className="pass">(커버)</span> : <span className="muted">(미커버)</span>}
+        </div>
+        {note && (
+          <div className={injected ? "fail" : "muted"} style={{ fontSize: 11, marginTop: 2 }}>
+            {injected && "⚠️ 인젝션 감지 — "}note: {note.slice(0, 180)}{note.length > 180 ? "…" : ""}
+          </div>
+        )}
+      </div>
+    );
+  }
+  if (e.type === "intent_received") {
+    const intent = e.intent as {
+      seller_id: string; seller_wallet: string; quoted_price: number;
+      agent_rationale: string; quotes_considered: Array<{ seller_id: string; price: number }>;
+    };
+    return (
+      <div className="event">
+        <div>
+          ✔ 선택: <span className="accent">{intent.seller_id}</span> ${intent.quoted_price} → {short(intent.seller_wallet)}
+        </div>
+        <div className="warn">“{intent.agent_rationale}”</div>
+      </div>
+    );
+  }
+  if (e.type === "agent_finished") {
+    return (
+      <div className="event">
+        <span className="muted">■ 에이전트 종료</span>
+      </div>
+    );
+  }
+  return null;
 }
 
 function PolicyPanel({ events }: { events: AuditEvent[] }) {

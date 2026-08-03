@@ -42,6 +42,17 @@ header .tagline { color: var(--muted); font-size: 12px; }
 .toolbar button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .toolbar button:disabled { opacity: 0.45; cursor: wait; }
 .toolbar button.ghost { border-style: dashed; color: var(--muted); }
+.goal-input {
+  flex: 1;
+  min-width: 280px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+}
+.goal-input:focus { outline: none; border-color: var(--accent); }
 
 .grid {
   flex: 1;

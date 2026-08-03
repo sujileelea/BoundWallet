@@ -9,4 +9,5 @@ for id in seller_a seller_b seller_c; do
   SELLER_ID="$id" node seller/server.ts &
 done
 node executor/server.ts &
+.venv/bin/python -m agent.service &
 wait
