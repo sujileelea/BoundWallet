@@ -263,12 +263,10 @@ function TransactionPanel({ events }: { events: AuditEvent[] }) {
   );
 }
 
-function useAutoScroll(dep: number) {
-  const endRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [dep]);
-  return endRef;
+// 페이지 전체가 스크롤되므로 패널별 자동 스크롤은 하지 않는다
+// (네 패널이 동시에 갱신되면 화면이 튐). ref는 호출부 호환 위해 유지.
+function useAutoScroll(_dep: number) {
+  return useRef<HTMLDivElement>(null);
 }
 
 const short = (addr: string) => (addr.length > 12 ? `${addr.slice(0, 4)}…${addr.slice(-4)}` : addr);

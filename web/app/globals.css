@@ -20,11 +20,10 @@ body {
   font-family: "SF Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
   font-size: 13px;
   line-height: 1.5;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
-main { display: flex; flex-direction: column; height: 100vh; padding: 12px; gap: 10px; }
+main { display: flex; flex-direction: column; min-height: 100vh; padding: 12px; gap: 10px; }
 
 header { display: flex; align-items: baseline; gap: 16px; padding: 0 4px; }
 header h1 { font-size: 16px; letter-spacing: 0.5px; }
@@ -48,9 +47,12 @@ header .tagline { color: var(--muted); font-size: 12px; }
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto 1fr;
+  grid-auto-rows: minmax(260px, auto);
   gap: 10px;
-  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
 }
 
 .panel {
@@ -58,8 +60,6 @@ header .tagline { color: var(--muted); font-size: 12px; }
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
-  overflow-y: auto;
-  min-height: 0;
 }
 
 .panel h2 {
@@ -69,9 +69,10 @@ header .tagline { color: var(--muted); font-size: 12px; }
   letter-spacing: 1px;
   margin-bottom: 8px;
   position: sticky;
-  top: -10px;
+  top: 0;
   background: var(--panel);
-  padding: 4px 0;
+  padding: 6px 0;
+  z-index: 1;
 }
 
 .pass { color: var(--pass); }
