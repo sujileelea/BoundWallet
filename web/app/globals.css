@@ -117,3 +117,10 @@ table.rules td:first-child { width: 140px; }
 }
 .badge.PASS { background: rgba(63, 185, 112, 0.15); color: var(--pass); }
 .badge.BLOCK, .badge.FAIL { background: rgba(229, 83, 75, 0.15); color: var(--fail); }
+
+footer.defense {
+  padding: 8px 6px 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+footer.defense span { color: var(--text); }

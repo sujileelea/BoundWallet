@@ -111,10 +111,10 @@ export default function Home() {
         ))}
         <button
           disabled={running !== null}
-          onClick={() => guard("4", () => runInjectionScenario())}
-          title="gemini-2.5-flash는 인젝션에 저항하므로, 속았다고 가정한 의도를 직접 제출해 정책 차단을 보인다"
+          onClick={() => guard("4block", () => runInjectionScenario())}
+          title="에이전트가 인젝션에 속았다고 가정 — 공격자 주소로의 의도를 직접 제출해 정책 차단을 보인다"
         >
-          {running === "4" ? "실행 중…" : "④ 인젝션 (확정)"}
+          {running === "4block" ? "실행 중…" : "④b 인젝션 (정책 차단)"}
         </button>
         <button disabled={running !== null} onClick={() => guard("reset", () => resetEnvelope())} className="ghost">
           봉투 리셋
@@ -130,6 +130,12 @@ export default function Home() {
         <PolicyPanel events={visible} />
         <TransactionPanel events={visible} />
       </div>
+      <footer className="defense">
+        3겹 방어 —
+        <span> ① 에이전트 툴 제한(결제 툴 부재)</span> ·
+        <span> ② 결정론 정책 엔진(LLM 호출 0회)</span> ·
+        <span> ③ 온체인 위임 한도(공격자 주소는 인출 권한 없음)</span>
+      </footer>
     </main>
   );
 }

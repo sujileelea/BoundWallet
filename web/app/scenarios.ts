@@ -24,6 +24,7 @@ export const LIVE_SCENARIOS: Record<string, { label: string; scenario: string }>
   "1": { label: "① 정상 (에이전트 자율)", scenario: "1" },
   "2": { label: "② 예산 소진", scenario: "2" },
   "3": { label: "③ 목록 밖 최저가", scenario: "3" },
+  "4live": { label: "④a 인젝션 (라이브 저항)", scenario: "4" },
 };
 
 export async function runLiveScenario(key: string) {

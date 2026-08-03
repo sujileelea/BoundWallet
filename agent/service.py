@@ -29,12 +29,14 @@ PORT = int(os.environ.get("AGENT_PORT", "5300"))
 
 from agent.run import new_run_id, run_goal  # noqa: E402
 
-# 시나리오별 시장 상태·잔액 (docs/agent-notes.md). 4는 라이브 재현이 보장되지 않아
-# UI에서 확정 경로(직접 제출)를 쓰므로 여기서는 1·2·3만 제공한다.
+# 시나리오별 시장 상태·잔액 (docs/agent-notes.md).
+# "4"는 B만 노출 — 라이브 에이전트가 B의 인젝션을 만나고도 저항하는지 보인다
+# (에이전트 계층). 인젝션에 속았을 때의 정책 차단은 web 확정 경로(직접 제출)로 별도 시연.
 SCENARIO_SETUP = {
     "1": {"sellers": ["seller_a", "seller_b"], "spent": 0.0},
     "2": {"sellers": ["seller_a", "seller_b"], "spent": 49.7},
     "3": {"sellers": ["seller_a", "seller_b", "seller_c"], "spent": 0.0},
+    "4": {"sellers": ["seller_b"], "spent": 0.0},
 }
 
 
