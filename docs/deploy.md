@@ -30,9 +30,10 @@
 - 조직 정책 `iam.allowedPolicyMemberDomains`는 **boundwallet 프로젝트에 한해 `allowAll`로 예외** 적용됨
   (admin@sigongan.com이 설정). 이로써 `allUsers` 공개 invoker 바인딩이 가능해졌다.
 
-## 커스텀 도메인: https://boundwallet.sigongan.com
+## 커스텀 도메인: https://boundwallet.sigongan.com — **발급 완료·접속 확인(200)**
 
 Google Cloud Run 도메인 매핑 방식으로 구성했다 (Cloudflare Host Header Override는 유료라 미사용).
+DNS 반영 후 인증서 발급까지 약 45분 걸렸다.
 
 구성 완료 상태:
 - `dev-team@sigongan.com`으로 Search Console 도메인 소유 확인 (`gcloud domains verify sigongan.com`).

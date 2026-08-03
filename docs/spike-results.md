@@ -10,7 +10,14 @@
 - 실 devnet USDC(`4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`)로 교체하려면 mint 주소만 바꾸면 된다 (Circle faucet에서 admin 주소로 수령 후 `devnet-addresses.json`의 mint 교체).
 - SOL 확보 주의: 공용 RPC 에어드랍은 IP당 일일 한도(429)가 있다. faucet.solana.com(GitHub 인증) 수동 수령으로 해결.
 
-## S2 — x402의 Solana devnet 지원: **부분 확인 (왕복 실측은 M1에서)**
+## S2 — x402의 Solana devnet 지원: **확인 완료 (표준 형상 정합 + 자체 정산 검증)**
+
+결론: 402 응답·결제 페이로드는 **x402 v2 표준 형상**(`@x402/core`의 `PaymentRequired`/
+`PaymentPayload`)을 그대로 따르고, 네트워크 식별자는 `@x402/svm`의 `SOLANA_DEVNET_CAIP2`를
+쓴다. 정산 검증만 facilitator 대신 자체 온체인 확인으로 한다(아래 대안 경로).
+판매자는 페이로드의 `accepted`를 자신이 제시한 요구사항과 대조해 금액·수취인 바꿔치기를
+차단한다(실측: `amount too low: 1 < 500000` 거부).
+
 
 - `@x402/svm` npm 실존, latest **2.20.0** (Coinbase, Apache-2.0).
 - 의존성: `@x402/core ~2.20.0`, `@solana-program/token`, `@solana-program/token-2022`, `@solana-program/compute-budget`. **peer dep: `@solana/kit >= 5.1.0`** — HANDOFF §6.3의 `@solana/web3.js`는 legacy, executor는 `@solana/kit`로 간다.

@@ -58,7 +58,9 @@ agent (Python+ADK, 키 없음) ──구매 의도──▶ executor (TS, 유일
 | M4 Gemini 에이전트 | **완료** — ADK+Vertex AI, 툴 3종, 자율 루프. 라이브 UI 연동 |
 | M5 판매자 3인스턴스 | **완료** — 온체인 검증(replay 가드) + 3인스턴스 동시 기동 |
 | M6 데모 UI | **완료** — Next.js 4분할 + SSE + 라이브 Gemini 사고 로그 + 자연어 입력 |
-| M7 시나리오 리허설 | 실행기 구축 — 1·2·3 라이브 / 4 다층방어. 5회 연속·녹화 대기 |
+| M7 시나리오 리허설 | **완료** — 클라우드 5회×5시나리오 **25/25** ([docs/rehearsal.md](docs/rehearsal.md)). 녹화만 남음 |
+| S2 x402 표준 스킴 | **완료** — 402·결제 페이로드를 x402 v2 표준 형상으로 정합 |
+| 라이브 배포 | **완료** — Cloud Run 7서비스 + 커스텀 도메인 ([docs/deploy.md](docs/deploy.md)) |
 
 ## 실행
 
