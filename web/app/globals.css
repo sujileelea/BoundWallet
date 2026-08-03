@@ -18,10 +18,16 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: "SF Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: var(--fs, 13px);
+  line-height: 1.55;
   min-height: 100vh;
 }
+
+/* 녹화용 데모 모드 — 글꼴·여백 확대 (영상에서 규칙 detail이 읽히게) */
+:root.demo { --fs: 17px; }
+:root.demo .panel { padding: 14px 18px; }
+:root.demo .stat .value { font-size: 28px; }
+:root.demo table.rules td { padding: 5px 8px; }
 
 main { display: flex; flex-direction: column; min-height: 100vh; padding: 12px; gap: 10px; }
 
@@ -124,3 +130,97 @@ footer.defense {
   font-size: 12px;
 }
 footer.defense span { color: var(--text); }
+
+/* ── 실행 중 배너: 시나리오 + 진행 단계 + 경과 초 ───────────────────────── */
+.run-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: rgba(110, 168, 254, 0.08);
+}
+.run-banner strong { color: var(--accent); }
+.run-banner .phase { color: var(--text); }
+.run-banner .elapsed { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.spinner {
+  width: 12px; height: 12px; flex: none;
+  border: 2px solid rgba(110, 168, 254, 0.25);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── 값 변화 하이라이트 + 델타 ─────────────────────────────────────────── */
+.stat .unit { color: var(--muted); font-size: 0.6em; margin-left: 4px; }
+.stat .value.changed { animation: flash 1.2s ease-out; }
+@keyframes flash {
+  0% { background: rgba(110, 168, 254, 0.35); }
+  100% { background: transparent; }
+}
+.delta {
+  margin-left: 8px;
+  font-size: 0.55em;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+.delta.down { color: var(--fail); background: rgba(229, 83, 75, 0.15); }
+.delta.up { color: var(--pass); background: rgba(63, 185, 112, 0.15); }
+
+/* ── 최신 항목 강조 ────────────────────────────────────────────────────── */
+.event.highlight {
+  border-left: 3px solid var(--accent);
+  padding-left: 10px;
+  background: rgba(110, 168, 254, 0.05);
+}
+.event .rationale { color: var(--warn); margin-top: 2px; }
+.event .note { font-size: 0.85em; margin-top: 2px; }
+.panel h2 .sub {
+  color: var(--muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 6px;
+}
+
+/* ── 인젝션 경고 박스 ──────────────────────────────────────────────────── */
+.injection-box {
+  margin-top: 6px;
+  border: 1px solid var(--fail);
+  border-radius: 6px;
+  background: rgba(229, 83, 75, 0.08);
+  padding: 8px 10px;
+}
+.injection-title { color: var(--fail); font-weight: 700; margin-bottom: 4px; }
+.injection-body { color: var(--text); font-size: 0.9em; word-break: break-all; }
+
+/* ── 정책 판정 ─────────────────────────────────────────────────────────── */
+.verdict-row { display: flex; align-items: center; gap: 10px; margin: 4px 0 6px; }
+.badge.big { font-size: 1.1em; padding: 3px 14px; }
+table.rules tr.row-fail td { background: rgba(229, 83, 75, 0.08); }
+
+/* ── 트랜잭션 ──────────────────────────────────────────────────────────── */
+.pay-line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pay-line .amount { font-size: 1.3em; font-weight: 700; color: var(--pass); }
+.explorer-btn {
+  display: inline-block;
+  margin: 8px 0 4px;
+  padding: 8px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: rgba(110, 168, 254, 0.12);
+  color: var(--accent);
+  font-weight: 700;
+}
+.explorer-btn:hover { background: rgba(110, 168, 254, 0.25); text-decoration: none; }
+.sig { color: var(--muted); font-size: 0.85em; word-break: break-all; }
+.blocked-box {
+  border: 1px solid var(--fail);
+  border-radius: 6px;
+  background: rgba(229, 83, 75, 0.08);
+  padding: 8px 10px;
+}
+.blocked-title { color: var(--fail); font-weight: 700; font-size: 1.1em; margin-bottom: 2px; }

@@ -28,3 +28,4 @@ __pycache__/
 # 로컬 전용 — 원격에 올리지 않음
 CLAUDE.md
 docs/TEAM-BRIEF.md
+submission/
