@@ -41,6 +41,12 @@ const ADDRESSES = JSON.parse(
 const rpc = createSolanaRpc(process.env.SOLANA_RPC_URL ?? "https://api.devnet.solana.com");
 const AUDIT_PATH = join(import.meta.dirname, "logs", "audit.jsonl");
 
+// 데모 전용 레지스트리 스위치: 시장에 노출할 판매자 집합 (null = 전체).
+// 시나리오 1은 A·B만, 3·4는 C까지 노출해 에이전트가 보는 시장 상태를 바꾼다.
+// 판정에는 관여하지 않는다 — allowlist 판단은 언제나 policy가 한다(R4).
+let advertised: string[] | null = null;
+const isAdvertised = (id: string) => advertised === null || advertised.includes(id);
+
 const audit = new JsonlSink(join(import.meta.dirname, "logs", "audit.jsonl"));
 const now = () => new Date().toISOString();
 const todayUtc = () => now().slice(0, 10);
@@ -215,9 +221,11 @@ createServer((req, res) => {
     }
     if (req.method === "GET" && req.url === "/catalog") {
       return send(res, 200, {
-        sellers: sellerCatalog.map(({ seller_id, port, wallet, price_usdc, coverage, role }) => ({
-          seller_id, port, wallet, price_usdc, coverage, role,
-        })),
+        sellers: sellerCatalog
+          .filter((s) => isAdvertised(s.seller_id))
+          .map(({ seller_id, port, wallet, price_usdc, coverage, role }) => ({
+            seller_id, port, wallet, price_usdc, coverage, role,
+          })),
         attacker: ADDRESSES.attacker,
         mint: ADDRESSES.mint,
         admin_ata: ADDRESSES.admin_ata,
@@ -261,6 +269,12 @@ createServer((req, res) => {
       const body = await readBody(req);
       setSpent(String(body.envelope_id), Math.round(Number(body.spent) * 1_000_000));
       return send(res, 200, { ok: true });
+    }
+    // 데모 전용: 시장에 노출할 판매자 집합 설정 (시나리오별 시장 상태)
+    if (req.method === "POST" && req.url === "/demo/advertise") {
+      const body = await readBody(req);
+      advertised = Array.isArray(body.seller_ids) ? (body.seller_ids as string[]) : null;
+      return send(res, 200, { advertised });
     }
     return send(res, 404, { error: "not found" });
   })().catch((e) => {
